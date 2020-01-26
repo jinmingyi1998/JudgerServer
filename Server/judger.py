@@ -5,10 +5,7 @@ import _judger
 import os
 from exception import CompileError
 
-default_env = ["LANG=en_US.UTF-8",
-               "LANGUAGE=en_US:en",
-               "LC_ALL=en_US.UTF-8",
-               "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
+default_env = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
 
 
 class JudgerBridge:
@@ -25,15 +22,21 @@ class JudgerBridge:
         self._seccomp_rule_name = None
         self._memory_limit_check_only = None
 
+    def __str__(self) -> str:
+        return self.__dict__.__str__()
+
 
 class Compiler(JudgerBridge):
-    def __init__(self, command, base_dir):
+    def __init__(self, command:str, base_dir:str):
         super().__init__()
-        self._max_cpu_time = 5000
-        self._max_real_time = 10000
-        self._max_memory = 512 * 1024 * 1024  # 500MB
+        self._max_cpu_time = 10000
+        self._max_real_time = 20000
+        self._max_memory = 128*1024*1024 # 128MB
+        self._max_stack = 128*1024*1024
         self._memory_limit_check_only = 0
         self.command = command
+        if command.find('java')>=0:
+            self._max_memory=-1
         self.base_dir = base_dir
 
     def __call__(self) -> None:
@@ -44,8 +47,8 @@ class Compiler(JudgerBridge):
                              max_real_time=self._max_real_time,
                              max_memory=self._max_memory,
                              max_stack=128 * 1024 * 1024,
-                             max_output_size=1024 * 1024,
-                             max_process_number=1,
+                             max_output_size=-1,
+                             max_process_number=-1,
                              exe_path=_command[0],
                              # /dev/null is best, but in some system, this will call ioctl system call
                              input_path='/dev/null',
@@ -61,7 +64,6 @@ class Compiler(JudgerBridge):
             if os.path.exists(compiler_out):
                 with open(compiler_out, encoding="utf-8") as f:
                     error = f.read().strip()
-                    # os.remove(compiler_out)
                     if error:
                         raise CompileError(error)
             print(result)
@@ -76,7 +78,7 @@ class Judger(JudgerBridge):
                  seccomp_rule,
                  judge_dir,
                  memory_limit_check_only,
-                 data_dir,submit_id,
+                 data_dir, submit_id,
                  spj):
         super().__init__()
         self.submit_id = submit_id
@@ -85,9 +87,12 @@ class Judger(JudgerBridge):
         self._max_cpu_time = max_cpu_time
         self._max_real_time = self._max_cpu_time * 2
         self._max_memory = max_memory
+        if str(command).find('java') >= 0:
+            self._max_memory = -1
         command = command.split(' ')
         self._exe_path = command[0]
         self._args = command[1:]
+        self._args.append('-XX:MaxRAM='+str(max_memory))
         self._seccomp_rule_name = seccomp_rule
         self._memory_limit_check_only = memory_limit_check_only
         self.spj = spj
@@ -95,7 +100,7 @@ class Judger(JudgerBridge):
     def __call__(self) -> List[Dict]:
         os.chdir(self.judge_dir)
         datas = pathlib.Path(self.data_dir)
-        results=[]
+        results = []
         for data in datas.glob("*.in"):
             case_id = data.stem
             output_path = case_id + ".out"

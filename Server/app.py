@@ -84,7 +84,7 @@ def judge():
     judger = Judger(data['max_cpu_time'],
                     data['max_memory'],
                     data['run_command'],
-                    data['seccomp_rule'],
+                    data.get('seccomp_rule'),
                     judge_dir,
                     1 if data.get('memory_limit_check_only') else 0
                     , data_dir, submit_id, False)
