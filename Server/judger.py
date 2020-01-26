@@ -27,16 +27,18 @@ class JudgerBridge:
 
 
 class Compiler(JudgerBridge):
-    def __init__(self, command:str, base_dir:str):
+    def __init__(self, command: str, base_dir: str):
         super().__init__()
         self._max_cpu_time = 10000
         self._max_real_time = 20000
-        self._max_memory = 128*1024*1024 # 128MB
-        self._max_stack = 128*1024*1024
+        self._max_memory = 128 * 1024 * 1024  # 128MB
+        self._max_stack = 128 * 1024 * 1024
         self._memory_limit_check_only = 0
         self.command = command
-        if command.find('java')>=0:
-            self._max_memory=-1
+        if command.find('java') >= 0:
+            self._max_memory = -1
+            self._max_cpu_time *= 2
+            self._max_real_time *= 2
         self.base_dir = base_dir
 
     def __call__(self) -> None:
@@ -89,10 +91,13 @@ class Judger(JudgerBridge):
         self._max_memory = max_memory
         if str(command).find('java') >= 0:
             self._max_memory = -1
+            self._max_cpu_time *= 2
+            self._max_real_time *= 3
+            self._max_memory *= 2
         command = command.split(' ')
         self._exe_path = command[0]
         self._args = command[1:]
-        self._args.append('-XX:MaxRAM='+str(max_memory))
+        self._args.append('-XX:MaxRAM=' + str(max_memory))
         self._seccomp_rule_name = seccomp_rule
         self._memory_limit_check_only = memory_limit_check_only
         self.spj = spj
