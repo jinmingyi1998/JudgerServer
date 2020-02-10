@@ -87,7 +87,7 @@ class Judger(JudgerBridge):
         self.judge_dir = judge_dir
         self.data_dir = data_dir
         self._max_cpu_time = max_cpu_time
-        self._max_real_time = self._max_cpu_time * 2
+        self._max_real_time = self._max_cpu_time * 3
         self._max_memory = max_memory
         if str(command).find('java') >= 0:
             self._max_memory = -1
