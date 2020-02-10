@@ -11,8 +11,8 @@ COPY supervisord.conf /etc/supervisord.conf
 RUN apt-get update && apt-get upgrade -y && apt-get install -y vim \
     cmake supervisor sudo htop python3 python3-pip python3-dev \
     python openjdk-8-jdk golang-go libseccomp-dev \
-    cd /tmp && git clone -b newnew  --depth 1 https://github.com/QingdaoU/Judger && cd Judger && \
-    mkdir build && cd build && cmake .. && make && make install \
+    && cd /tmp && git clone -b newnew  --depth 1 https://github.com/QingdaoU/Judger && cd Judger \
+    && mkdir build && cd build && cmake .. && make && make install \
     && cd ../bindings/Python && python3 setup.py install && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && pip3 install  --no-cache-dir -r /root/requirement.txt && cd /root/Judger && mkdir build \
     && cd build && cmake .. && make && make install \
