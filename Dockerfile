@@ -8,13 +8,12 @@ COPY Server /root/JudgerServer
 COPY supervisord.conf /etc/supervisord.conf
 COPY Judger /root/Judger
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y vim \
-    cmake supervisor sudo htop python3 python3-pip python3-dev \
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y vim cmake supervisor sudo htop python3 python3-pip python3-dev \
     python openjdk-8-jdk gccgo libseccomp-dev \
-    && cd /root/Judger \
-    && mkdir build && cd build && cmake .. && make && make install \
-    && cd ../bindings/Python && python3 setup.py install && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && pip3 install  --no-cache-dir -r /root/requirement.txt && cd /root/Judger && mkdir build \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && pip3 install  --no-cache-dir -r /root/requirement.txt \
+    && cd /root/Judger && mkdir build \
     && cd build && cmake .. && make && make install \
     && cd ../bindings/Python && python3 setup.py install \
     && rm -rf /root/Judger
