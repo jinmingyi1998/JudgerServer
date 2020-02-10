@@ -93,7 +93,10 @@ class Judger(JudgerBridge):
             self._max_memory = -1
             self._max_cpu_time *= 2
             self._max_real_time *= 3
+        elif str(command).find('py') >= 0:
             self._max_memory *= 2
+            self._max_cpu_time *= 2
+            self._max_real_time *= 2
         command = command.split(' ')
         self._exe_path = command[0]
         self._args = command[1:]
