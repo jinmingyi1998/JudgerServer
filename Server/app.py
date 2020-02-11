@@ -21,7 +21,7 @@ BASE_DIR = os.getenv('DATA_DIR', '/ojdata')
 TMP_DIR = "/tmp/judger"
 
 OJ_BACKEND_CALLBACK = os.getenv('OJ_BACKEND_CALLBACK', None)
-assert OJ_BACKEND_CALLBACK is not None, "ENV: OJ_BACKEND must be set!"
+assert OJ_BACKEND_CALLBACK is not None, "ENV: OJ_BACKEND_CALLBACK must be set!"
 
 
 def start_up():

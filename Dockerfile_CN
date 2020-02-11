@@ -9,9 +9,10 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     python python3 python3-dev openjdk8 go libseccomp-dev && rm -rf /var/cache/apk/* \
     && pip3 install --no-cache-dir -r /root/requirement.txt -i https://mirrors.aliyun.com/pypi/simple/ \
     && cd /root/Judger && mkdir build && cd build && cmake .. && make && make install \
-    && cd ../bindings/Python && python3 setup.py install && rm -rf /root/Judger
+    && cd ../bindings/Python && python3 setup.py install && rm -rf /root/Judger && mkdir /var/log/supervisor
 COPY supervisord.conf /etc/supervisord.conf
 ENV TZ=Asia/Shanghai \
     LANG=en_US.UTF-8 \
-    LANGUAGE=en_US:en
+    LANGUAGE=en_US:en \
+    OJ_BACKEND_CALLBACK=http://localhost:8080/callback
 CMD supervisord
