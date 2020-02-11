@@ -1,10 +1,10 @@
-FROM alpine:3.11.3
+FROM golang:alpine3.11
 MAINTAINER MingyiJin
 COPY requirement.txt /root/requirement.txt
 COPY Server /root/JudgerServer
 COPY Judger /root/Judger
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
-    && apk update && apk add --no-cache \
+    && apk update && apk add --no-cache git \
     bash gcc g++ make cmake sudo supervisor linux-headers \
     python python3 python3-dev openjdk8 go libseccomp-dev && rm -rf /var/cache/apk/* \
     && pip3 install --no-cache-dir -r /root/requirement.txt -i https://mirrors.aliyun.com/pypi/simple/ \
@@ -14,5 +14,8 @@ COPY supervisord.conf /etc/supervisord.conf
 ENV TZ=Asia/Shanghai \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
+    JAVA_HOME=/usr/lib/jvm/java-1.8-openjdk \
+    PATH=$JAVA_HOME/bin:${PATH} \
+    CLASSPATH=$JAVA_HOME/lib \
     OJ_BACKEND_CALLBACK=http://localhost:8080/callback
 CMD supervisord
