@@ -49,7 +49,7 @@ RUN set -eux; \
 	apk del .build-deps; \
 	\
 	export PATH="/usr/local/go/bin:$PATH"; \
-	&& sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+	sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
     && apk update && apk add --no-cache git \
     bash gcc g++ make cmake sudo supervisor linux-headers \
     python python3 python3-dev openjdk8 libseccomp-dev && rm -rf /var/cache/apk/* \
