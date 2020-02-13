@@ -10,7 +10,7 @@ RUN chmod -R 777 /tmp && \
     && apt-get install -y cmake supervisor python3 python3-pip python3-dev \
     python openjdk-8-jdk gccgo libseccomp-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && pip3 install  --no-cache-dir -r /root/requirement.txt \
+    && pip3 install --no-cache-dir -r /root/requirement.txt \
     && cd /root/Judger && mkdir build \
     && cd build && cmake .. && make && make install \
     && cd ../bindings/Python && python3 setup.py install \
@@ -22,5 +22,7 @@ ENV LANG=en_US.UTF-8 \
     PATH=$JAVA_HOME/bin:${PATH} \
     CLASSPATH=$JAVA_HOME/lib \
     OJ_BACKEND_CALLBACK=http://localhost:8080/callback
+VOLUME /ojdata
+EXPOSE 8000
 
 CMD supervisord

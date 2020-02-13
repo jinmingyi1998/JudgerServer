@@ -17,7 +17,7 @@ from judger import Judger, Compiler
 app = flask.Flask(__name__)
 
 SERVICE_PORT = int(os.getenv('SERVICE_PORT', "5001"))
-BASE_DIR = os.getenv('DATA_DIR', '/ojdata')
+BASE_DIR = '/ojdata'
 TMP_DIR = "/tmp/judger"
 
 OJ_BACKEND_CALLBACK = os.getenv('OJ_BACKEND_CALLBACK', None)
