@@ -69,7 +69,6 @@ def callback(run_result):
 
 @app.route('/favicon.ico')
 @app.route('/ping')
-@app.route('/')
 def ping():
     return "pong"
 
@@ -114,6 +113,16 @@ def unzip_file(zip_src, dst_dir):
         print('This is not zip')
 
 
+@app.route('/upload')
+def upload_home():
+    return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    change the url to  /upload/{id}.
+    for example:  /upload/1   will upload to directory 1    
+    '''
+
+
 @app.route('/upload/<int:post_id>', methods=['GET', 'POST'])
 def upload_view(post_id):
     if request.method == 'POST':
@@ -130,14 +139,14 @@ def upload_view(post_id):
                 os.makedirs(upload_dir)
             file.save(file_name)
             unzip_file(file_name, upload_dir)
-            return redirect('/')
+            return redirect('/upload')
     return '''
      <!doctype html>
      <title>Upload new File</title>
      <h1>Upload new File</h1>
      <form action="" method=post enctype=multipart/form-data>
-      <p><input type=file name=file>
-        <input type=submit value=Upload>
+     <p><input type=file name=file>
+     <input type=submit value=Upload>
      </form>
      '''
 
