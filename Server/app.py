@@ -1,7 +1,8 @@
 import shutil
-
+import zipfile
+from time import sleep
 import flask
-from flask import request
+from flask import request, redirect
 import os
 import multiprocessing
 import requests
@@ -10,7 +11,6 @@ import json
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.wsgi import WSGIContainer
-
 from exception import CompileError
 from judger import Judger, Compiler
 
@@ -22,6 +22,7 @@ TMP_DIR = "/tmp/judger"
 
 OJ_BACKEND_CALLBACK = os.getenv('OJ_BACKEND_CALLBACK', None)
 assert OJ_BACKEND_CALLBACK is not None, "ENV: OJ_BACKEND_CALLBACK must be set!"
+app.config['MAX_CONTENT_LENGTH'] = 256 * 1024 * 1024  # 256MB
 
 
 def start_up():
@@ -41,10 +42,10 @@ def run(judger, compiler):
         return res
     try:
         res['results'] = judger()
-        if len(res['results'])==0:
-            res["err" ] = "ERR"
-            res['info']="No Data"
-            print(res,"No data ERROR")
+        if len(res['results']) == 0:
+            res["err"] = "ERR"
+            res['info'] = "No Data"
+            print(res, "No data ERROR")
     except Exception as e:
         res['err'] = "ERR"
         res['info'] = "System Broken"
@@ -52,17 +53,23 @@ def run(judger, compiler):
 
 
 def callback(run_result):
-    try:
-        headers = {'Content-Type': 'application/json'}
-        with requests.post(OJ_BACKEND_CALLBACK, headers=headers, data=json.dumps(run_result)) as r:
-            print(json.dumps(run_result))
-            assert r.content.decode('utf-8')=='success'
-    except Exception as e:
-        print("callback failed", str(e))
+    for i in range(5):
+        try:
+            if i > 0:
+                print("retry ...")
+            headers = {'Content-Type': 'application/json'}
+            with requests.post(OJ_BACKEND_CALLBACK, headers=headers, data=json.dumps(run_result)) as r:
+                print(json.dumps(run_result))
+                assert r.content.decode('utf-8') == 'success'
+                return
+        except Exception as e:
+            print("callback failed", str(e))
+            sleep(5)
 
 
 @app.route('/favicon.ico')
 @app.route('/ping')
+@app.route('/')
 def ping():
     return "pong"
 
@@ -90,6 +97,49 @@ def judge():
                     , data_dir, submit_id, False)
     judge_pool.apply_async(run, (judger, compiler), callback=callback)
     return "success"
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.split('.')[-1] in ['zip']
+
+
+def unzip_file(zip_src, dst_dir):
+    r = zipfile.is_zipfile(zip_src)
+    if r:
+        fz = zipfile.ZipFile(zip_src, 'r')
+        for file in fz.namelist():
+            fz.extract(file, dst_dir)
+    else:
+        print('This is not zip')
+
+
+@app.route('/upload/<int:post_id>', methods=['GET', 'POST'])
+def upload_view(post_id):
+    if request.method == 'POST':
+        # 获取post过来的文件名称，从name=file参数中获取
+        file = request.files['file']
+        print(file.filename)
+        suffix = file.filename.split('.')[-1]
+        if file and suffix in ['zip']:
+            upload_dir = os.path.join(BASE_DIR, str(post_id))
+            file_name = os.path.join(upload_dir, file.filename)
+            if os.path.exists(upload_dir):
+                shutil.rmtree(upload_dir)
+            else:
+                os.makedirs(upload_dir)
+            file.save(file_name)
+            unzip_file(file_name, upload_dir)
+            return redirect('/')
+    return '''
+     <!doctype html>
+     <title>Upload new File</title>
+     <h1>Upload new File</h1>
+     <form action="" method=post enctype=multipart/form-data>
+      <p><input type=file name=file>
+        <input type=submit value=Upload>
+     </form>
+     '''
 
 
 if __name__ == "__main__":
