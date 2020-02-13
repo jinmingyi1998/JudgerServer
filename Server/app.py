@@ -2,7 +2,7 @@ import shutil
 import zipfile
 from time import sleep
 import flask
-from flask import request, redirect
+from flask import request, redirect, session
 import os
 import multiprocessing
 import requests
@@ -19,7 +19,7 @@ app = flask.Flask(__name__)
 SERVICE_PORT = int(os.getenv('SERVICE_PORT', "5001"))
 BASE_DIR = '/ojdata'
 TMP_DIR = "/tmp/judger"
-
+PASSWORD = os.getenv('PASSWORD', '1234')
 OJ_BACKEND_CALLBACK = os.getenv('OJ_BACKEND_CALLBACK', None)
 assert OJ_BACKEND_CALLBACK is not None, "ENV: OJ_BACKEND_CALLBACK must be set!"
 app.config['MAX_CONTENT_LENGTH'] = 256 * 1024 * 1024  # 256MB
@@ -71,6 +71,20 @@ def callback(run_result):
 @app.route('/ping')
 def ping():
     return "pong"
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form['password'] == PASSWORD:
+            session['isLogin'] = True
+            return redirect('/ping')
+    return '''
+        <form action="" method="post">
+            <p><input type=text name=password>
+            <p><input type=submit value=Login>
+        </form>
+    '''
 
 
 @app.route('/judge', methods=['POST'])
