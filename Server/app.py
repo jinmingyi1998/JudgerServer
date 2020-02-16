@@ -27,8 +27,10 @@ app.config['MAX_CONTENT_LENGTH'] = 256 * 1024 * 1024  # 256MB
 
 def start_up():
     if not os.path.exists(BASE_DIR):
+        print("mkdir",BASE_DIR)
         os.mkdir(BASE_DIR)
     if not os.path.exists(TMP_DIR):
+        print("mkdir",TMP_DIR)
         os.makedirs(TMP_DIR)
 
 
@@ -90,8 +92,10 @@ def login():
 @app.route('/judge', methods=['POST'])
 def judge():
     data = request.json
+    print(data)
     submit_id = data['submit_id']
     problem_id = data['problem_id']
+    print("run problem id:",problem_id)
     source = data['source']
     judge_dir = os.path.join(TMP_DIR, str(submit_id))
     data_dir = os.path.join(BASE_DIR, str(problem_id))
@@ -173,6 +177,6 @@ if __name__ == "__main__":
         http_server.listen(SERVICE_PORT)
         IOLoop.instance().start()
     except KeyboardInterrupt as e:
-        pass
+        print("keyboard interrupt")
     judge_pool.close()
     judge_pool.join()
