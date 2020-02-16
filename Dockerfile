@@ -17,7 +17,9 @@ RUN chmod -R 777 /tmp && \
     && cd ../bindings/Python && python3 setup.py install \
     && rm -rf /root/Judger
 
-ENV LANG=en_US.UTF-8 \
+ENV LANG=en_US.UTF-8
+    TZ=Asia/Shanghai \
+    LC_ALL=C \
     LANGUAGE=en_US:en \
     JAVA_HOME=/usr/lib/jvm/java-1.8-openjdk \
     PATH=$JAVA_HOME/bin:${PATH} \
