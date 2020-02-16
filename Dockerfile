@@ -3,7 +3,7 @@ COPY requirement.txt /root/requirement.txt
 COPY Server /root/JudgerServer
 COPY supervisord.conf /etc/supervisord.conf
 COPY Judger /root/Judger
-COPY sources.list /etc/apt/sources.list
+#COPY sources.list /etc/apt/sources.list
 
 RUN chmod -R 777 /tmp && \
     rm -rf /etc/apt/sources.list.d/* && \
