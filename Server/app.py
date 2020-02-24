@@ -252,7 +252,6 @@ if __name__ == "__main__":
     network_pool = multiprocessing.Pool(100)
     try:
         start_up()
-        print('aaa')
         http_server = HTTPServer(WSGIContainer(app))
         http_server.listen(SERVICE_PORT)
         IOLoop.instance().start()
