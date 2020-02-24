@@ -12,6 +12,7 @@ from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.wsgi import WSGIContainer
 from werkzeug.utils import secure_filename
+from pathlib import Path
 
 from exception import CompileError
 from judger import Judger, Compiler
@@ -21,13 +22,13 @@ app = flask.Flask(__name__)
 SERVICE_PORT = int(os.getenv('SERVICE_PORT', "5001"))
 BASE_DIR = '/ojdata'
 TMP_DIR = "/tmp/judger"
-PASSWORD = os.getenv('PASSWORD', '1234')
+PASSWORD = os.getenv('PASSWORD', 'iAMaPASSWORD')
 OJ_BACKEND_CALLBACK = os.getenv('OJ_BACKEND_CALLBACK', None)
 assert OJ_BACKEND_CALLBACK is not None, "ENV: OJ_BACKEND_CALLBACK must be set!"
 
 app.config['MAX_CONTENT_LENGTH'] = 256 * 1024 * 1024  # 256MB
 app.config['SESSION_TYPE'] = 'memcached'
-app.config['SECRET_KEY'] = 'super secret key'
+app.config['SECRET_KEY'] = PASSWORD
 
 
 def start_up():
@@ -138,18 +139,45 @@ def unzip_file(zip_src, dst_dir):
 
 @app.route('/upload')
 def upload_home():
+    print(session.get('is_login'))
     if session.get('is_login', False) == False:
         return redirect('/login')
     return '''
     <!doctype html>
     <title>Upload new File</title>
-    change the url to  /upload/{id}.
-    for example:  /upload/1   will upload to directory 1    
+    <p>change the url to  /upload/{id}.</p>
+    <p>for example:  /upload/1   will upload to directory 1</p>
+    <p>请直接修改url为 /upload/{id}， 比如/upload/1 将会上传至目录 1</p>
+    <p>上传的文件必须为zip，zip内深度必须为0</p>
+    <p>标准输入文件后缀为 .in  标准输出文件后缀为 .out </p>
+    <p>Special Judge程序必须为 spj.* , 推荐上传源代码,支持 spj.c spj.cpp spj.py（为Python3）</p>
+    <p>目录下如果有spj则启用Special Judge，程序输出将作为标准输入输入到spj,spj标准输出0 为AC，其他为WA</p> 
     '''
+
+
+def check_spj(upload_dir):
+    dir = Path(upload_dir)
+    for filename in dir.glob("spj.*"):
+        if filename.suffix not in ['.c', '.cpp', '.py']:
+            continue
+        compile_command = {
+            ".c": "/usr/bin/g++ -fno-tree-ch -O2 -Wall -std=c++14 spj.c -lm -o spj",
+            ".cpp": "/usr/bin/g++ -fno-tree-ch -O2 -Wall -std=c++14 spj.cpp -lm -o spj",
+            ".py": "/usr/bin/python3 -m py_compile spj.py"
+        }
+        compiler = Compiler(compile_command.get(filename.suffix),
+                            upload_dir)
+        try:
+            compiler()
+        except CompileError as ce:
+            return ce.message
+        break
+    return "ok"
 
 
 @app.route('/upload/<int:post_id>', methods=['GET', 'POST'])
 def upload_view(post_id):
+    print(session.get('is_login'))
     if session.get('is_login', False) == False:
         return redirect('/login')
     if request.method == 'POST':
@@ -162,16 +190,24 @@ def upload_view(post_id):
             file_name = os.path.join(upload_dir, secure_filename(file.filename))
             if os.path.exists(upload_dir):
                 shutil.rmtree(upload_dir)
-            else:
-                os.makedirs(upload_dir)
+            os.makedirs(upload_dir)
             file.save(file_name)
             unzip_file(file_name, upload_dir)
             os.remove(file_name)
+            compile_out = check_spj(upload_dir)
+            if compile_out != 'ok':
+                return "compile error:"+compile_out
             return redirect('/upload')
+        else:
+            return "文件格式错误"
     return '''
      <!doctype html>
      <title>Upload new File</title>
-     <h1>Upload new File</h1>
+     <h3>Upload new File</h1>
+     <p>上传的文件必须为zip，zip内深度必须为0</p>
+    <p>标准输入文件后缀为 .in  标准输出文件后缀为 .out </p>
+    <p>Special Judge程序必须为 spj.* , 推荐上传源代码,支持 spj.c spj.cpp spj.py（为Python3）</p>
+    <p>目录下如果有spj则启用Special Judge，程序输出将作为标准输入输入到spj,spj标准输出0 为AC，其他为WA</p>
      <form action="" method=post enctype=multipart/form-data>
      <p><input type="file" name="file" required="required" >
      <input type=submit value=Upload>
@@ -183,9 +219,10 @@ if __name__ == "__main__":
     judge_pool = multiprocessing.Pool(psutil.cpu_count())
     start_up()
     try:
-        http_server = HTTPServer(WSGIContainer(app))
-        http_server.listen(SERVICE_PORT)
-        IOLoop.instance().start()
+        app.run(host='0.0.0.0', port=SERVICE_PORT, debug=True)
+        # http_server = HTTPServer(WSGIContainer(app))
+        # http_server.listen(SERVICE_PORT)
+        # IOLoop.instance().start()
     except KeyboardInterrupt as e:
         print("keyboard interrupt")
     judge_pool.close()
