@@ -23,7 +23,9 @@ ENV LANG=en_US.UTF-8 \
     JAVA_HOME=/usr/lib/jvm/java-1.8-openjdk \
     PATH=$JAVA_HOME/bin:${PATH} \
     CLASSPATH=$JAVA_HOME/lib \
-    OJ_BACKEND_CALLBACK=http://localhost:8080/callback
+    OJ_BACKEND_CALLBACK=http://localhost:8080/callback \
+    PASSWORD=1234 \
+    SERVICE_PORT=5001
 VOLUME /ojdata
 EXPOSE 8000
 
