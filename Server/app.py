@@ -47,6 +47,7 @@ test json:
 }
 '''
 
+
 def start_up():
     if not os.path.exists(BASE_DIR):
         print("mkdir", BASE_DIR)
@@ -105,7 +106,6 @@ def callback(run_result):
     network_pool.apply_async(send_callback, (run_result,))
 
 
-
 @app.route('/favicon.ico')
 @app.route('/ping')
 def ping():
@@ -134,8 +134,8 @@ def judge():
     problem_id = data['problem_id']
     print("run problem id:", problem_id)
     source = data['source']
-    judge_dir = os.path.join(TMP_DIR, str(submit_id)) # temp directory for running
-    data_dir = os.path.join(BASE_DIR, str(problem_id)) # standard input output file, read only
+    judge_dir = os.path.join(TMP_DIR, str(submit_id))  # temp directory for running
+    data_dir = os.path.join(BASE_DIR, str(problem_id))  # standard input output file, read only
     if os.path.exists(judge_dir):
         shutil.rmtree(judge_dir)
     os.makedirs(judge_dir)
@@ -143,9 +143,9 @@ def judge():
         f.write(source)
     compiler = Compiler(data['compile_command'], judge_dir)
     spj = False
-    if os.path.exists(os.path.join(data_dir,"spj")) or \
+    if os.path.exists(os.path.join(data_dir, "spj")) or \
             os.path.exists(os.path.join(data_dir, "spj.py")):
-        spj =True
+        spj = True
     judger = Judger(data['max_cpu_time'],
                     data['max_memory'],
                     data['run_command'],
@@ -228,7 +228,7 @@ def upload_view(post_id):
             os.remove(file_name)
             compile_out = check_spj(upload_dir)
             if compile_out != 'ok':
-                return "compile error:"+compile_out
+                return "compile error:" + compile_out
             return redirect('/upload')
         else:
             return "文件格式错误"
@@ -256,7 +256,7 @@ if __name__ == "__main__":
         http_server.listen(SERVICE_PORT)
         IOLoop.instance().start()
     except KeyboardInterrupt as e:
-        print("keyboard interrupt")
+        pass
     finally:
         IOLoop.instance().stop()
         judge_pool.close()
