@@ -142,9 +142,8 @@ class Judger(JudgerBridge):
 
     def compare(self, case_id):
         os.chdir(self.judge_dir)
-        # TODO spj
         if self.spj:
-            pass
+            return self.special_judge(case_id)
         try:
             with open(os.path.join(self.data_dir, case_id + ".out")) as ans:
                 with open(case_id + ".out") as uans:
@@ -164,7 +163,7 @@ class Judger(JudgerBridge):
         spj_real_time = 60000  # 30s
         spj_memory = 256 * 1024 * 1024  # 256M
         input_path = case_id + ".out"
-        output_path = case_id + ".res"
+        output_path = case_id + ".spj"
         spj_path = os.path.join(self.data_dir, 'spj')
         run_command = spj_path
         if not os.path.exists(spj_path):
@@ -175,20 +174,41 @@ class Judger(JudgerBridge):
         run_command = run_command.split(' ')
         exe_path = run_command[0]
         args = run_command[1:]
-        _judger.run(max_cpu_time=spj_cpu_time,
-                    max_real_time=spj_real_time,
-                    max_memory=spj_memory,
-                    max_stack=256 * 1024 * 1024,
-                    max_output_size=self._max_output_size,
-                    max_process_number=-1,
-                    exe_path=exe_path,
-                    input_path=input_path,
-                    output_path=output_path,
-                    error_path=output_path,
-                    args=args,
-                    env=default_env,
-                    log_path="spj.log",
-                    uid=0,
-                    gid=0,
-                    memory_limit_check_only=0,
-                    )
+        run_result = _judger.run(max_cpu_time=spj_cpu_time,
+                                 max_real_time=spj_real_time,
+                                 max_memory=spj_memory,
+                                 max_stack=256 * 1024 * 1024,
+                                 max_output_size=self._max_output_size,
+                                 max_process_number=-1,
+                                 exe_path=exe_path,
+                                 input_path=input_path,
+                                 output_path=output_path,
+                                 error_path=output_path,
+                                 args=args,
+                                 env=default_env,
+                                 log_path="spj.log",
+                                 uid=0,
+                                 gid=0,
+                                 seccomp_rule_name='',
+                                 memory_limit_check_only=0,
+                                 )
+        if run_result['result'] != _judger.RESULT_SUCCESS:
+            return False
+        if not os.path.exists(output_path):
+            return False
+        try:
+            with open(output_path) as f:
+                for line in f.readlines():
+                    if not line:
+                        continue
+                    if line == '':
+                        continue
+                    try:
+                        if int(line) == 0:
+                            return True
+                    except ValueError:
+                        pass
+
+        except Exception:
+            pass
+        return False
