@@ -103,21 +103,25 @@ def judge():
     problem_id = data['problem_id']
     print("run problem id:", problem_id)
     source = data['source']
-    judge_dir = os.path.join(TMP_DIR, str(submit_id))
-    data_dir = os.path.join(BASE_DIR, str(problem_id))
+    judge_dir = os.path.join(TMP_DIR, str(submit_id)) # temp directory for running
+    data_dir = os.path.join(BASE_DIR, str(problem_id)) # standard input output file, read only
     if os.path.exists(judge_dir):
         shutil.rmtree(judge_dir)
     os.makedirs(judge_dir)
     with open(os.path.join(judge_dir, data['src']), mode='w+', encoding='utf-8') as f:
         f.write(source)
     compiler = Compiler(data['compile_command'], judge_dir)
+    spj = False
+    if os.path.exists(os.path.join(data_dir,"spj")) or \
+            os.path.exists(os.path.join(data_dir, "spj.py")):
+        spj =True
     judger = Judger(data['max_cpu_time'],
                     data['max_memory'],
                     data['run_command'],
                     data.get('seccomp_rule'),
                     judge_dir,
                     1 if data.get('memory_limit_check_only') else 0
-                    , data_dir, submit_id, False)
+                    , data_dir, submit_id, spj)
     judge_pool.apply_async(run, (judger, compiler), callback=callback)
     return "success"
 

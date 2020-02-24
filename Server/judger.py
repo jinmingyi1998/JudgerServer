@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import _judger
 import os
-from exception import CompileError
+from exception import CompileError, JudgeServiceError
 
 default_env = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
 
@@ -49,7 +49,7 @@ class Compiler(JudgerBridge):
         result = _judger.run(max_cpu_time=self._max_cpu_time,
                              max_real_time=self._max_real_time,
                              max_memory=self._max_memory,
-                             max_stack=128 * 1024 * 1024,
+                             max_stack=256 * 1024 * 1024,
                              max_output_size=-1,
                              max_process_number=-1,
                              exe_path=_command[0],
@@ -115,7 +115,7 @@ class Judger(JudgerBridge):
             run_result = _judger.run(max_cpu_time=self._max_cpu_time,
                                      max_real_time=self._max_real_time,
                                      max_memory=self._max_memory,
-                                     max_stack=128 * 1024 * 1024,
+                                     max_stack=256 * 1024 * 1024,
                                      max_output_size=self._max_output_size,
                                      max_process_number=1,
                                      exe_path=self._exe_path,
@@ -158,3 +158,37 @@ class Judger(JudgerBridge):
         except Exception:
             return False
         return True
+
+    def special_judge(self, case_id):
+        spj_cpu_time = 20000  # 10s
+        spj_real_time = 60000  # 30s
+        spj_memory = 256 * 1024 * 1024  # 256M
+        input_path = case_id + ".out"
+        output_path = case_id + ".res"
+        spj_path = os.path.join(self.data_dir, 'spj')
+        run_command = spj_path
+        if not os.path.exists(spj_path):
+            spj_path += '.py'
+            run_command = '/usr/bin/python3 ' + spj_path
+        if not os.path.exists(spj_path):
+            raise JudgeServiceError("no spj found")
+        run_command = run_command.split(' ')
+        exe_path = run_command[0]
+        args = run_command[1:]
+        _judger.run(max_cpu_time=spj_cpu_time,
+                    max_real_time=spj_real_time,
+                    max_memory=spj_memory,
+                    max_stack=256 * 1024 * 1024,
+                    max_output_size=self._max_output_size,
+                    max_process_number=-1,
+                    exe_path=exe_path,
+                    input_path=input_path,
+                    output_path=output_path,
+                    error_path=output_path,
+                    args=args,
+                    env=default_env,
+                    log_path="spj.log",
+                    uid=0,
+                    gid=0,
+                    memory_limit_check_only=0,
+                    )
