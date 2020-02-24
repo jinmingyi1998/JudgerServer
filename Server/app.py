@@ -2,7 +2,7 @@ import shutil
 import zipfile
 from time import sleep
 import flask
-from flask import request, redirect, session
+from flask import request, redirect, session, url_for
 import os
 import multiprocessing
 import requests
@@ -11,6 +11,8 @@ import json
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.wsgi import WSGIContainer
+from werkzeug.utils import secure_filename
+
 from exception import CompileError
 from judger import Judger, Compiler
 
@@ -22,15 +24,18 @@ TMP_DIR = "/tmp/judger"
 PASSWORD = os.getenv('PASSWORD', '1234')
 OJ_BACKEND_CALLBACK = os.getenv('OJ_BACKEND_CALLBACK', None)
 assert OJ_BACKEND_CALLBACK is not None, "ENV: OJ_BACKEND_CALLBACK must be set!"
+
 app.config['MAX_CONTENT_LENGTH'] = 256 * 1024 * 1024  # 256MB
+app.config['SESSION_TYPE'] = 'memcached'
+app.config['SECRET_KEY'] = 'super secret key'
 
 
 def start_up():
     if not os.path.exists(BASE_DIR):
-        print("mkdir",BASE_DIR)
+        print("mkdir", BASE_DIR)
         os.mkdir(BASE_DIR)
     if not os.path.exists(TMP_DIR):
-        print("mkdir",TMP_DIR)
+        print("mkdir", TMP_DIR)
         os.makedirs(TMP_DIR)
 
 
@@ -79,8 +84,8 @@ def ping():
 def login():
     if request.method == 'POST':
         if request.form['password'] == PASSWORD:
-            session['isLogin'] = True
-            return redirect('/ping')
+            session['is_login'] = True
+            return redirect(url_for('upload_home'))
     return '''
         <form action="" method="post">
             <p><input type=text name=password>
@@ -95,7 +100,7 @@ def judge():
     print(data)
     submit_id = data['submit_id']
     problem_id = data['problem_id']
-    print("run problem id:",problem_id)
+    print("run problem id:", problem_id)
     source = data['source']
     judge_dir = os.path.join(TMP_DIR, str(submit_id))
     data_dir = os.path.join(BASE_DIR, str(problem_id))
@@ -122,10 +127,10 @@ def allowed_file(filename):
 
 
 def unzip_file(zip_src, dst_dir):
-    r = zipfile.is_zipfile(zip_src)
-    if r:
+    if zipfile.is_zipfile(zip_src):
         fz = zipfile.ZipFile(zip_src, 'r')
         for file in fz.namelist():
+            print(file)
             fz.extract(file, dst_dir)
     else:
         print('This is not zip')
@@ -133,6 +138,8 @@ def unzip_file(zip_src, dst_dir):
 
 @app.route('/upload')
 def upload_home():
+    if session.get('is_login', False) == False:
+        return redirect('/login')
     return '''
     <!doctype html>
     <title>Upload new File</title>
@@ -143,6 +150,8 @@ def upload_home():
 
 @app.route('/upload/<int:post_id>', methods=['GET', 'POST'])
 def upload_view(post_id):
+    if session.get('is_login', False) == False:
+        return redirect('/login')
     if request.method == 'POST':
         # 获取post过来的文件名称，从name=file参数中获取
         file = request.files['file']
@@ -150,20 +159,21 @@ def upload_view(post_id):
         suffix = file.filename.split('.')[-1]
         if file and suffix in ['zip']:
             upload_dir = os.path.join(BASE_DIR, str(post_id))
-            file_name = os.path.join(upload_dir, file.filename)
+            file_name = os.path.join(upload_dir, secure_filename(file.filename))
             if os.path.exists(upload_dir):
                 shutil.rmtree(upload_dir)
             else:
                 os.makedirs(upload_dir)
             file.save(file_name)
             unzip_file(file_name, upload_dir)
+            os.remove(file_name)
             return redirect('/upload')
     return '''
      <!doctype html>
      <title>Upload new File</title>
      <h1>Upload new File</h1>
      <form action="" method=post enctype=multipart/form-data>
-     <p><input type=file name=file>
+     <p><input type="file" name="file" required="required" >
      <input type=submit value=Upload>
      </form>
      '''
