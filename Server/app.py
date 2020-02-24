@@ -30,6 +30,20 @@ app.config['MAX_CONTENT_LENGTH'] = 256 * 1024 * 1024  # 256MB
 app.config['SESSION_TYPE'] = 'memcached'
 app.config['SECRET_KEY'] = PASSWORD
 
+'''
+test json:
+{
+    "submit_id": 3,
+    "problem_id": 1,
+    "max_cpu_time": 1000,
+    "max_memory": 11111960,
+    "src": "main.cpp",
+    "seccomp_rule": "c_cpp",
+    "run_command": "./main",
+    "compile_command": "/usr/bin/g++ main.cpp -o main",
+    "source": "#include<stdio.h>\nint main()\n{\n\tint a,b;\n\tscanf(\"%d %d\",&a,&b);\n\tprintf(\"%d\\n\",a+b);\n}\n"
+}
+'''
 
 def start_up():
     if not os.path.exists(BASE_DIR):
@@ -55,12 +69,14 @@ def run(judger, compiler):
             res['info'] = "No Data"
             print(res, "No data ERROR")
     except Exception as e:
+        print(str(e))
         res['err'] = "ERR"
         res['info'] = "System Broken"
     return res
 
 
 def callback(run_result):
+    print(run_result)
     for i in range(5):
         try:
             if i > 0:
@@ -72,7 +88,7 @@ def callback(run_result):
                 return
         except Exception as e:
             print("callback failed", str(e))
-            sleep(5)
+            sleep(10)
 
 
 @app.route('/favicon.ico')
@@ -135,7 +151,6 @@ def unzip_file(zip_src, dst_dir):
     if zipfile.is_zipfile(zip_src):
         fz = zipfile.ZipFile(zip_src, 'r')
         for file in fz.namelist():
-            print(file)
             fz.extract(file, dst_dir)
     else:
         print('This is not zip')
@@ -143,7 +158,6 @@ def unzip_file(zip_src, dst_dir):
 
 @app.route('/upload')
 def upload_home():
-    print(session.get('is_login'))
     if session.get('is_login', False) == False:
         return redirect('/login')
     return '''
@@ -181,7 +195,6 @@ def check_spj(upload_dir):
 
 @app.route('/upload/<int:post_id>', methods=['GET', 'POST'])
 def upload_view(post_id):
-    print(session.get('is_login'))
     if session.get('is_login', False) == False:
         return redirect('/login')
     if request.method == 'POST':
@@ -221,13 +234,15 @@ def upload_view(post_id):
 
 if __name__ == "__main__":
     judge_pool = multiprocessing.Pool(psutil.cpu_count())
-    start_up()
     try:
-        app.run(host='0.0.0.0', port=SERVICE_PORT, debug=True)
-        # http_server = HTTPServer(WSGIContainer(app))
-        # http_server.listen(SERVICE_PORT)
-        # IOLoop.instance().start()
+        start_up()
+        # app.run(host='0.0.0.0', port=SERVICE_PORT, debug=True)
+        http_server = HTTPServer(WSGIContainer(app))
+        http_server.listen(SERVICE_PORT)
+        IOLoop.instance().start()
     except KeyboardInterrupt as e:
         print("keyboard interrupt")
-    judge_pool.close()
-    judge_pool.join()
+    finally:
+        IOLoop.instance().stop()
+        judge_pool.close()
+        judge_pool.join()
