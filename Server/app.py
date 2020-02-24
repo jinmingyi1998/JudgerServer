@@ -1,19 +1,21 @@
+import json
+import multiprocessing
+import os
 import shutil
 import zipfile
+from pathlib import Path
 from time import sleep
+
 import flask
-from flask import request, redirect, session, url_for
-import os
-import multiprocessing
-import requests
 import psutil
-import json
+import requests
+from flask import request, redirect, session, url_for
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.wsgi import WSGIContainer
 from werkzeug.utils import secure_filename
-from pathlib import Path
 
+from cleaner import delfile
 from exception import CompileError
 from judger import Judger, Compiler
 
@@ -52,43 +54,56 @@ def start_up():
     if not os.path.exists(TMP_DIR):
         print("mkdir", TMP_DIR)
         os.makedirs(TMP_DIR)
+    p = multiprocessing.Process(target=delfile, args=(TMP_DIR,))
+    p.start()
 
 
 def run(judger, compiler):
-    res = {"submit_id": judger.submit_id}
     try:
-        compiler()
-    except CompileError as ce:
-        res['err'] = "CE"
-        res['info'] = ce.message
+        res = {"submit_id": judger.submit_id}
+        try:
+            compiler()
+        except CompileError as ce:
+            res['err'] = "CE"
+            res['info'] = ce.message
+            return res
+        try:
+            res['results'] = judger()
+            if len(res['results']) == 0:
+                res["err"] = "ERR"
+                res['info'] = "No Data"
+                print(res, "No data ERROR")
+        except Exception as e:
+            print(str(e))
+            res['err'] = "ERR"
+            res['info'] = "System Broken"
         return res
+    except KeyboardInterrupt:
+        pass
+
+
+def send_callback(run_result):
     try:
-        res['results'] = judger()
-        if len(res['results']) == 0:
-            res["err"] = "ERR"
-            res['info'] = "No Data"
-            print(res, "No data ERROR")
-    except Exception as e:
-        print(str(e))
-        res['err'] = "ERR"
-        res['info'] = "System Broken"
-    return res
+        for i in range(5):
+            try:
+                if i > 0:
+                    print("retry ...")
+                headers = {'Content-Type': 'application/json'}
+                with requests.post(OJ_BACKEND_CALLBACK, headers=headers, data=json.dumps(run_result)) as r:
+                    print(json.dumps(run_result))
+                    assert r.content.decode('utf-8') == 'success'
+                    return
+            except Exception as e:
+                print("callback failed", str(e))
+                sleep(10)
+    except KeyboardInterrupt:
+        pass
 
 
 def callback(run_result):
     print(run_result)
-    for i in range(5):
-        try:
-            if i > 0:
-                print("retry ...")
-            headers = {'Content-Type': 'application/json'}
-            with requests.post(OJ_BACKEND_CALLBACK, headers=headers, data=json.dumps(run_result)) as r:
-                print(json.dumps(run_result))
-                assert r.content.decode('utf-8') == 'success'
-                return
-        except Exception as e:
-            print("callback failed", str(e))
-            sleep(10)
+    network_pool.apply_async(send_callback, (run_result,))
+
 
 
 @app.route('/favicon.ico')
@@ -233,10 +248,11 @@ def upload_view(post_id):
 
 
 if __name__ == "__main__":
-    judge_pool = multiprocessing.Pool(psutil.cpu_count())
+    judge_pool = multiprocessing.Pool(psutil.cpu_count() + 1)
+    network_pool = multiprocessing.Pool(100)
     try:
         start_up()
-        # app.run(host='0.0.0.0', port=SERVICE_PORT, debug=True)
+        print('aaa')
         http_server = HTTPServer(WSGIContainer(app))
         http_server.listen(SERVICE_PORT)
         IOLoop.instance().start()
@@ -246,3 +262,5 @@ if __name__ == "__main__":
         IOLoop.instance().stop()
         judge_pool.close()
         judge_pool.join()
+        network_pool.close()
+        network_pool.join()
