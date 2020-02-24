@@ -10,17 +10,20 @@ default_env = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bi
 
 class JudgerBridge:
     def __init__(self):
-        self._max_output_size = 30 * 1024 * 1024
+        self._max_output_size = 32 * 1024 * 1024  # 30M
         self._max_process_number = 1
         self._uid = self._gid = 0
         self._env = default_env
         self._max_cpu_time = None
-        self._max_real_time = None
         self._max_memory = None
         self._exe_path = None
         self._args = None
         self._seccomp_rule_name = None
         self._memory_limit_check_only = None
+
+    @property
+    def _max_real_time(self):
+        return 3 * self._max_cpu_time if self._max_cpu_time else None
 
     def __str__(self) -> str:
         return self.__dict__.__str__()
@@ -30,7 +33,6 @@ class Compiler(JudgerBridge):
     def __init__(self, command: str, base_dir: str):
         super().__init__()
         self._max_cpu_time = 10000
-        self._max_real_time = 20000
         self._max_memory = 128 * 1024 * 1024  # 128MB
         self._max_stack = 128 * 1024 * 1024
         self._memory_limit_check_only = 0
@@ -38,12 +40,11 @@ class Compiler(JudgerBridge):
         if command.find('java') >= 0:
             self._max_memory = -1
             self._max_cpu_time *= 2
-            self._max_real_time *= 2
         self.base_dir = base_dir
 
     def __call__(self) -> None:
         os.chdir(self.base_dir)
-        compiler_out = "compiler.out"
+        compiler_out = "compiler_output.log"
         _command = self.command.split(" ")
         result = _judger.run(max_cpu_time=self._max_cpu_time,
                              max_real_time=self._max_real_time,
@@ -87,16 +88,13 @@ class Judger(JudgerBridge):
         self.judge_dir = judge_dir
         self.data_dir = data_dir
         self._max_cpu_time = max_cpu_time
-        self._max_real_time = self._max_cpu_time * 3
         self._max_memory = max_memory
         if str(command).find('java') >= 0:
             self._max_memory = -1
             self._max_cpu_time *= 2
-            self._max_real_time *= 3
         elif str(command).find('py') >= 0:
             self._max_memory *= 2
             self._max_cpu_time *= 2
-            self._max_real_time *= 2
         command = command.split(' ')
         self._exe_path = command[0]
         self._args = command[1:]
