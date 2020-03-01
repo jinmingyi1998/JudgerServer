@@ -1,8 +1,9 @@
+import os
 import pathlib
 from typing import Dict, List
 
 import _judger
-import os
+
 from exception import CompileError, JudgeServiceError
 
 default_env = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
@@ -140,10 +141,10 @@ class Judger(JudgerBridge):
             results.append(run_result)
         return results
 
-    def compare(self, case_id):
+    def compare(self, case_id, input_path=None):
         os.chdir(self.judge_dir)
-        if self.spj:
-            return self.special_judge(case_id)
+        if self.spj and input_path is not None:
+            return self.special_judge(case_id, input_path)
         try:
             with open(os.path.join(self.data_dir, case_id + ".out")) as ans:
                 with open(case_id + ".out") as uans:
@@ -158,10 +159,10 @@ class Judger(JudgerBridge):
             return False
         return True
 
-    def special_judge(self, case_id):
-        spj_cpu_time = 20000  # 10s
-        spj_real_time = 60000  # 30s
-        spj_memory = 256 * 1024 * 1024  # 256M
+    def special_judge(self, case_id, data_input_path):
+        spj_cpu_time = self._max_cpu_time * 5
+        spj_real_time = spj_cpu_time * 3
+        spj_memory = 1024 * 1024 * 1024  # 1G
         input_path = case_id + ".out"
         output_path = case_id + ".spj"
         spj_path = os.path.join(self.data_dir, 'spj')
@@ -169,6 +170,7 @@ class Judger(JudgerBridge):
         if not os.path.exists(spj_path):
             spj_path += '.py'
             run_command = '/usr/bin/python3 ' + spj_path
+        run_command += ' ' + data_input_path
         if not os.path.exists(spj_path):
             raise JudgeServiceError("no spj found")
         run_command = run_command.split(' ')
