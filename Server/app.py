@@ -9,7 +9,7 @@ from time import sleep
 import flask
 import psutil
 import requests
-from flask import request, redirect, session, url_for
+from flask import request, redirect, session, url_for, render_template
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.wsgi import WSGIContainer
@@ -232,19 +232,7 @@ def upload_view(post_id):
             return redirect('/upload')
         else:
             return "文件格式错误"
-    return '''
-     <!doctype html>
-     <title>Upload new File</title>
-     <h3>Upload new File</h1>
-     <p>上传的文件必须为zip，zip内深度必须为0</p>
-    <p>标准输入文件后缀为 .in  标准输出文件后缀为 .out </p>
-    <p>Special Judge程序必须为 spj.* , 推荐上传源代码,支持 spj.c spj.cpp spj.py（为Python3）</p>
-    <p>目录下如果有spj则启用Special Judge，程序输出将作为标准输入输入到spj,spj标准输出0 为AC，其他为WA</p>
-     <form action="" method=post enctype=multipart/form-data>
-     <p><input type="file" name="file" required="required" >
-     <input type=submit value=Upload>
-     </form>
-     '''
+    return render_template('upload.html')
 
 
 if __name__ == "__main__":
