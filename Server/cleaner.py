@@ -1,11 +1,14 @@
+import logging
 import os
 import shutil
 import time
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(filename)s %(lineno)d %(levelname)s : %(message)s')
+
 
 def delfile(file_url):
     while True:
-        print("delete temp files...")
+        logging.info("delete temp files...")
         for f in os.listdir(file_url):
             filedate = os.path.getmtime(os.path.join(file_url, f))
             date1 = time.time()
@@ -14,5 +17,5 @@ def delfile(file_url):
                 try:
                     shutil.rmtree(os.path.join(file_url, f))
                 except Exception as e:
-                    print(e)
+                    logging.error(str(e))
         time.sleep(60 * 60 * 24)

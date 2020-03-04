@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 from typing import Dict, List
@@ -7,7 +8,7 @@ import _judger
 from exception import CompileError, JudgeServiceError
 
 default_env = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
-
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(filename)s %(lineno)d %(levelname)s : %(message)s')
 
 class JudgerBridge:
     def __init__(self):
@@ -34,8 +35,8 @@ class Compiler(JudgerBridge):
     def __init__(self, command: str, base_dir: str):
         super().__init__()
         self._max_cpu_time = 10000
-        self._max_memory = 128 * 1024 * 1024  # 128MB
-        self._max_stack = 128 * 1024 * 1024
+        self._max_memory = 256 * 1024 * 1024  # 128MB
+        self._max_stack = 256 * 1024 * 1024
         self._memory_limit_check_only = 0
         self.command = command
         if command.find('java') >= 0:
@@ -70,7 +71,7 @@ class Compiler(JudgerBridge):
                     error = f.read().strip()
                     if error:
                         raise CompileError(error)
-            print(result)
+            logging.warning(f"CE {result}")
             raise CompileError("Compiler runtime error, info: System Broken")
 
 
