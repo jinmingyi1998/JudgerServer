@@ -108,6 +108,12 @@ def send_callback(run_result):
 def callback(run_result):
     network_pool.apply_async(send_callback, (run_result,))
 
+@app.route('/info')
+def sys_info():
+    d={
+        'cpu':psutil.cpu_count()
+    }
+    return json.dumps(d)
 
 @app.route('/favicon.ico')
 @app.route('/ping')
