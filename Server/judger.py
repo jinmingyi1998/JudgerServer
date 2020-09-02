@@ -135,7 +135,7 @@ class Judger(JudgerBridge):
             if run_result['result'] != _judger.RESULT_SUCCESS:
                 results.append(run_result)
                 return results
-            if not self.compare(case_id):
+            if not self.compare(case_id, input_path if self.spj else None):
                 run_result['result'] = _judger.RESULT_WRONG_ANSWER
                 results.append(run_result)
                 return results
